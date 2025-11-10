@@ -76,17 +76,17 @@ Space 			= [ \t\f]
 WhiteSpace		= {LineTerminator} | {Space}
 INTEGER			= 0 | [1-9][0-9]*
 ID				= [a-zA-Z][a-zA-Z0-9]*
+NOT_VALID_ID 	= [0-9]+[a-zA-Z][a-zA-Z0-9]*
 
 LETTERS = [a-zA-Z]+
 DIGIT = [0-9]+
 CMT = [a-zA-Z0-9\(\)\[\]\{\}\?\!\+\-\*\/\.\;]
 LETTERS_ = [a-zA-Z]*
 DIGIT_ = [0-9]*
-
+LEADING_ZERO = 0[0-9]+
 STRING = \"{LETTERS_}\"
 COMMENT_TYPE_1 = "//"({CMT}|{Space})*{LineTerminator}?
 COMMENT_TYPE_2 = "/*"({CMT}| {LineTerminator}|{WhiteSpace})*"*/"
-
 
 LPAREN      = "("
 RPAREN 		= ")" 
@@ -169,12 +169,20 @@ ERROR 		= .
 {COMMENT_TYPE_1}	{/*ignore*/}
 {COMMENT_TYPE_2}	{/*ignore*/}
 {STRING} {return symbol(TokenNames.STRING,"STRING("+yytext()+")");}
+{NOT_VALID_ID}   	{ return symbol(TokenNames.ERROR, "ERROR"); }
+{LEADING_ZERO}      { return symbol(TokenNames.ERROR, "ERROR"); }
 {INTEGER} {
-  int val = Integer.parseInt(yytext());
-  if (val > 32767)
-    return symbol(TokenNames.ERROR, "ERROR");
-  else
-    return symbol(TokenNames.INT, "INT(" + Integer.valueOf(val) + ")");
+  try {
+      int val = Integer.parseInt(yytext());
+      if (val > 32767) {
+          return symbol(TokenNames.ERROR, "ERROR");
+      	} 
+            else {
+          return symbol(TokenNames.INT, "INT(" + val + ")");
+      	}
+          }
+ catch (NumberFormatException e) {
+	return symbol(TokenNames.ERROR, "ERROR");}
 }
 {ID}                { return symbol(TokenNames.ID, "ID("+yytext()+")"); }
 <<EOF>>				{ return symbol(TokenNames.EOF);}
