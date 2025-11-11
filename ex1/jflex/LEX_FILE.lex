@@ -42,6 +42,11 @@ import java_cup.runtime.*;
 %cup
 
 /****************/
+/* STATES */
+/****************/
+%state COMMENT
+
+/****************/
 /* DECLARATIONS */
 /****************/
 /*****************************************************************************/   
@@ -136,6 +141,9 @@ ERROR 		= .
 
 <YYINITIAL> {
 
+{WhiteSpace}		{/*ignore*/}
+{COMMENT_TYPE_1}	{/*ignore*/}
+"/*"                { yybegin(COMMENT); }
 {ARRAY}             { return symbol(TokenNames.ARRAY, "ARRAY"); }
 {CLASS}             { return symbol(TokenNames.CLASS, "CLASS"); }
 {ELSE}              { return symbol(TokenNames.ELSE, "ELSE"); }
@@ -165,9 +173,6 @@ ERROR 		= .
 {COMMA}             { return symbol(TokenNames.COMMA, "COMMA"); }
 {DOT}               { return symbol(TokenNames.DOT, "DOT"); }
 {SEMICOLON}         { return symbol(TokenNames.SEMICOLON, "SEMICOLON"); }
-{WhiteSpace}		{/*ignore*/}
-{COMMENT_TYPE_1}	{/*ignore*/}
-{COMMENT_TYPE_2}	{/*ignore*/}
 {STRING} {return symbol(TokenNames.STRING,"STRING("+yytext()+")");}
 {NOT_VALID_ID}   	{ return symbol(TokenNames.ERROR, "ERROR"); }
 {LEADING_ZERO}      { return symbol(TokenNames.ERROR, "ERROR"); }
@@ -187,4 +192,12 @@ ERROR 		= .
 {ID}                { return symbol(TokenNames.ID, "ID("+yytext()+")"); }
 <<EOF>>				{ return symbol(TokenNames.EOF);}
 {ERROR} 			{return symbol(TokenNames.ERROR,"ERROR");}
+}
+
+<COMMENT> {
+"*/"                { yybegin(YYINITIAL); }
+"/*"                { return symbol(TokenNames.ERROR, "ERROR"); } /* nested comment */
+<<EOF>>             { return symbol(TokenNames.ERROR, "ERROR"); }
+{CMT}|{WhiteSpace}|{LineTerminator}  { /* ignore allowed chars */ }
+.                   { return symbol(TokenNames.ERROR, "ERROR"); } /* illegal char */
 }
