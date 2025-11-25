@@ -48,9 +48,9 @@ public class Main {
         catch (Exception e) {
             try {
                 PrintWriter w = new PrintWriter(outputFileName);
-                if (p != null)
+                if (p!=null && p.errorLine != -1)
                     w.print("ERROR(" + p.errorLine + ")");
-                else 
+                else
                     w.print("ERROR");
                 w.close();
             } catch (Exception ignore) {}
