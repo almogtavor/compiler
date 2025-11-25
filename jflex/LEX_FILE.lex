@@ -81,7 +81,6 @@ Space 			= [ \t\f]
 WhiteSpace		= {LineTerminator} | {Space}
 INTEGER			= 0 | [1-9][0-9]*
 ID				= [a-zA-Z][a-zA-Z0-9]*
-NOT_VALID_ID 	= [0-9]+[a-zA-Z][a-zA-Z0-9]*
 
 LETTERS = [a-zA-Z]+
 DIGIT = [0-9]+
@@ -174,30 +173,29 @@ ERROR 		= .
 {DOT}               { return symbol(TokenNames.DOT, "DOT"); }
 {SEMICOLON}         { return symbol(TokenNames.SEMICOLON, "SEMICOLON"); }
 {STRING} {return symbol(TokenNames.STRING,yytext());}
-{NOT_VALID_ID}   	{ return symbol(TokenNames.EOF); }
-{LEADING_ZERO}      { return symbol(TokenNames.EOF); }
+{LEADING_ZERO}      { throw new RuntimeException(); }
 {INTEGER} {
   try {
       int val = Integer.parseInt(yytext());
       if (val > 32767) {
-          return symbol(TokenNames.EOF);
+          throw new RuntimeException();
       	} 
             else {
           return symbol(TokenNames.INT,val);
       	}
           }
  catch (NumberFormatException e) {
-	return symbol(TokenNames.EOF);}
+	throw new RuntimeException();}
 }
 {ID}                { return symbol(TokenNames.ID,yytext()); }
 <<EOF>>				{ return symbol(TokenNames.EOF);}
-{ERROR} 			{ return symbol(TokenNames.EOF);}
+{ERROR} 			{ throw new RuntimeException();}
 }
 
 <COMMENT> {
 "*/"                { yybegin(YYINITIAL); }
-"/*"                { return symbol(TokenNames.EOF);} /* nested comment */
+"/*"                { throw new RuntimeException();} /* nested comment */
 <<EOF>>             { return symbol(TokenNames.EOF);}
 {CMT}|{WhiteSpace}|{LineTerminator}  { /* ignore allowed chars */ }
-.                   { return symbol(TokenNames.EOF);} /* illegal char */
+.                   { throw new RuntimeException();} /* illegal char */
 }
