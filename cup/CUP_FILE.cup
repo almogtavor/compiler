@@ -1,13 +1,9 @@
-/****************************/
-/* FILE NAME: CUP_FILE.cup  */
-/****************************/
-
 import java_cup.runtime.*;
 import ast.*;
 
 
 /*******************/
-/* PARSER JAVACODE */
+/* PARSER          */
 /*******************/
 parser code 
 {:
@@ -27,7 +23,7 @@ parser code
 :}
 
 /************************/
-/* CUSTOM SCANNER WRAP */
+/*        SCANNER       */
 /************************/
 scan with
 {:
