@@ -18,7 +18,7 @@ int IsPrime(int p)
     return 0;
 }
 
-void PrintPrimes(int start, int end)
+void PrintPrimes(int start,)
 {
     int p := 2;
     
@@ -31,7 +31,7 @@ void PrintPrimes(int start, int end)
     }
 }
 
-void main()
+void main(void)
 {
     PrintPrimes(2,100);
 }
