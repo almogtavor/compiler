@@ -9,7 +9,7 @@ public class AstArrayTypedef extends AstDec {
         this.type = type;
         this.name = name;
 
-        System.out.print("====================== arrayTypedef -> ARRAY ID EQ type SEMICOLON\n");
+        System.out.print("====================== arrayTypedef -> ARRAY ID EQ type LBRACK RBRACK SEMICOLON \n");
     }
 
     public void printMe() {
@@ -26,3 +26,4 @@ public class AstArrayTypedef extends AstDec {
             AstGraphviz.getInstance().logEdge(serialNumber, type.serialNumber);
     }
 }
+
