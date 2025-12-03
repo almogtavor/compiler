@@ -1,0 +1,59 @@
+package ast;
+
+import Exceptions.SemanticException;
+import symboltable.SymbolTable;
+import types.*;
+
+public class AstVarDec extends AstDec {
+
+    public AstType type;
+    public String name;
+    public AstExp init;
+
+    public AstVarDec(AstType type, String name, AstExp init, int lineNumber) {
+        super(lineNumber);
+        this.type = type;
+        this.name = name;
+        this.init = init;
+    }
+
+    @Override
+    public void printMe() {
+
+        if (type != null) type.printMe();
+        if (init != null) init.printMe();
+
+        AstGraphviz.getInstance().logNode(serialNumber, "VARDEC(" + name + ")");
+        if (type != null) AstGraphviz.getInstance().logEdge(serialNumber, type.serialNumber);
+        if (init != null) AstGraphviz.getInstance().logEdge(serialNumber, init.serialNumber);
+    }
+
+    @Override
+    public Type SemantMe() {
+        System.out.println("SemantMe: " + this.getClass().getSimpleName());
+
+        Type t = type.SemantMe();
+        if (t == TypeVoid.getInstance())
+            throw new SemanticException(lineNumber);
+
+        if (SymbolTable.getInstance().findInCurrentScope(name) != null)
+            throw new SemanticException(lineNumber);
+
+        Type initType = null;
+        if (init != null) {
+            initType = init.SemantMe();
+
+            if (initType == TypeNil.getInstance()) {
+                if (!(t instanceof TypeClass) && !(t instanceof TypeArray))
+                    throw new SemanticException(lineNumber);
+            }
+
+            if (!t.isAssignableFrom(initType))
+                throw new SemanticException(lineNumber);
+        }
+
+        SymbolTable.getInstance().enter(name, t);
+        return t;
+    }
+
+}
