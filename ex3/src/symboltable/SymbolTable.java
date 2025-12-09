@@ -349,4 +349,8 @@ public class SymbolTable
     	return null;
 	}
 
+	public static boolean isReservedKeyword(String name) {
+		return name.equals("int") || name.equals("string") || name.equals("void");
+	}
+
 }
