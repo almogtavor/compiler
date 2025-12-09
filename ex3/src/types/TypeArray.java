@@ -23,8 +23,13 @@ public class TypeArray extends Type {
         
         TypeArray o = (TypeArray) other;
         
-        // arrays compatible if element types match
-        return this.elementType == o.elementType;
+        if (this.name.equals(o.name))
+        return true;
+    
+        if (o.name.equals(this.elementType.name))
+            return true;
+        
+        return false;
     }
 
 }
