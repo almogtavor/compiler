@@ -30,7 +30,6 @@ public class AstClassDec extends AstDec {
             }
             else if (dec instanceof AstFuncDec) {
                 AstFuncDec fd = (AstFuncDec) dec;
-                // בנה TypeFunction עבור המתודה
                 Type retType = fd.retType.SemantMe();
                 TypeList params = (fd.args != null ? fd.args.buildTypeList() : null);
                 TypeFunction funcType = new TypeFunction(retType, fd.name, params);
@@ -62,11 +61,12 @@ public class AstClassDec extends AstDec {
 
         SymbolTable sym = SymbolTable.getInstance();
 
-        // 1. האם השם כבר תפוס?
+        if (SymbolTable.isReservedKeyword(name))
+            throw new SemanticException(lineNumber);
+
         if (sym.findInCurrentScope(name) != null)
             throw new SemanticException(lineNumber);
 
-        // 2. בדיקת parent
         TypeClass parent = null;
         if (parentName != null) {
             Type p = sym.find(parentName);
@@ -75,44 +75,96 @@ public class AstClassDec extends AstDec {
             parent = (TypeClass) p;
         }
 
-        // 3. בדיקת שמות כפולים בתוך המחלקה (overloading + shadowing פנימי)
         checkNoDuplicateNamesInClass();
 
-        // 4. בדיקת shadowing והורשה
         if (parent != null)
             checkInheritanceRules(parent);
 
-        // 5. צור מחלקה ריקה והכנס לטבלה מיד (לצורך self-reference)
         TypeClass thisClass = new TypeClass(name, parent, null);
         sym.enter(name, thisClass);
 
-        // 6. פתח סקופ של מחלקה
         sym.beginScope();
 
-        // 6.5. *** הוסף! *** שמור ועדכן את ה-class הנוכחי
         TypeClass prevClass = sym.getCurrentClass();
         sym.setCurrentClass(thisClass);
 
-        // 7. סמנטי שדות ומתודות
-        if (fields != null)
-            fields.SemantMe();
+        processMembersInOrder();
 
-        // 7.5. *** הוסף! *** החזר את ה-class הקודם
         sym.setCurrentClass(prevClass);
 
-        // 8. סגור סקופ
         sym.endScope();
 
-        // 9. בנה רשימת שדות (רק עכשיו!)
         TypeClassVarDecList members = buildMemberList(fields);
 
-        // 10. עדכן את המחלקה
         thisClass.dataMembers = members;
 
         return thisClass;
     }
 
-    // מתודה חדשה: בדיקת שמות כפולים בתוך המחלקה
+    private void processMembersInOrder() {
+        if (fields == null) return;
+
+        SymbolTable sym = SymbolTable.getInstance();
+
+        for (AstCFieldList it = fields; it != null; it = it.tail) {
+            AstDec dec = it.head.dec;
+
+            if (dec instanceof AstVarDec) {
+                AstVarDec vd = (AstVarDec) dec;
+                
+                if (SymbolTable.isReservedKeyword(vd.name))
+                    throw new SemanticException(vd.lineNumber);
+                
+                Type t = vd.type.SemantMe();
+                if (t == TypeVoid.getInstance())
+                    throw new SemanticException(vd.lineNumber);
+
+                if (sym.findInCurrentScope(vd.name) != null)
+                    throw new SemanticException(vd.lineNumber);
+                
+                sym.enter(vd.name, t);
+
+                if (vd.init != null) {
+                    Type initType = vd.init.SemantMe();
+
+                    if (initType == TypeNil.getInstance()) {
+                        if (!(t instanceof TypeClass) && !(t instanceof TypeArray))
+                            throw new SemanticException(vd.lineNumber);
+                    }
+
+                    if (!t.isAssignableFrom(initType))
+                        throw new SemanticException(vd.lineNumber);
+                }
+            }
+            else if (dec instanceof AstFuncDec) {
+                AstFuncDec fd = (AstFuncDec) dec;
+                
+                if (SymbolTable.isReservedKeyword(fd.name))
+                    throw new SemanticException(fd.lineNumber);
+                
+                Type returnType = fd.retType.SemantMe();
+                TypeList paramsList = (fd.args != null ? fd.args.buildTypeList() : null);
+
+                if (sym.findInCurrentScope(fd.name) != null)
+                    throw new SemanticException(fd.lineNumber);
+
+                TypeFunction funcType = new TypeFunction(returnType, fd.name, paramsList);
+                sym.enter(fd.name, funcType);
+
+                sym.beginScope();
+                sym.enter("__RET_TYPE__", returnType);
+
+                if (fd.args != null)
+                    fd.args.SemantMe();
+
+                if (fd.body != null)
+                    fd.body.SemantMe();
+
+                sym.endScope();
+            }
+        }
+    }
+
     private void checkNoDuplicateNamesInClass() {
         if (fields == null) return;
         
@@ -128,7 +180,6 @@ public class AstClassDec extends AstDec {
         }
     }
 
-    // מתודה חדשה: בדיקת כללי הורשה
     private void checkInheritanceRules(TypeClass parent) {
         if (fields == null) return;
 
@@ -137,7 +188,6 @@ public class AstClassDec extends AstDec {
             
             if (dec instanceof AstVarDec) {
                 AstVarDec vd = (AstVarDec) dec;
-                // אסור shadowing של field
                 if (findInParentChain(parent, vd.name) != null)
                     throw new SemanticException(vd.lineNumber);
             }
@@ -146,18 +196,14 @@ public class AstClassDec extends AstDec {
                 Type parentMember = findInParentChain(parent, fd.name);
                 
                 if (parentMember != null) {
-                    // אם ה-parent יש field באותו שם - ERROR (shadowing)
                     if (!(parentMember instanceof TypeFunction))
                         throw new SemanticException(fd.lineNumber);
                     
-                    // אם זה method overriding - בדוק חתימה זהה
                     TypeFunction parentFunc = (TypeFunction) parentMember;
                     
-                    // בנה את הטיפוס של המתודה הנוכחית
                     Type retType = fd.retType.SemantMe();
                     TypeList params = (fd.args != null ? fd.args.buildTypeList() : null);
                     
-                    // בדוק התאמה
                     if (!signaturesMatch(parentFunc, retType, params))
                         throw new SemanticException(fd.lineNumber);
                 }
@@ -165,7 +211,6 @@ public class AstClassDec extends AstDec {
         }
     }
 
-    // מתודת עזר: חיפוש בשרשרת ההורים
     private Type findInParentChain(TypeClass parent, String name) {
         TypeClass curr = parent;
         while (curr != null) {
@@ -179,13 +224,10 @@ public class AstClassDec extends AstDec {
         return null;
     }
 
-    // מתודת עזר: בדיקת התאמת חתימות
     private boolean signaturesMatch(TypeFunction parentFunc, Type retType, TypeList params) {
-        // בדוק return type
         if (parentFunc.returnType != retType)
             return false;
         
-        // בדוק parameters
         TypeList p1 = parentFunc.params;
         TypeList p2 = params;
         
@@ -199,7 +241,6 @@ public class AstClassDec extends AstDec {
         return p1 == null && p2 == null;
     }
 
-    // מתודת עזר: קבלת שם member
     private String getMemberName(AstDec dec) {
         if (dec instanceof AstVarDec)
             return ((AstVarDec) dec).name;
@@ -207,6 +248,4 @@ public class AstClassDec extends AstDec {
             return ((AstFuncDec) dec).name;
         return null;
     }
-
-
 }

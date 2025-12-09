@@ -40,36 +40,31 @@ public class AstFuncDec extends AstDec {
     public Type SemantMe() {
         System.out.println("SemantMe: " + this.getClass().getSimpleName());
 
-        // 1. tipos hachzara
+        if (SymbolTable.isReservedKeyword(name))
+            throw new SemanticException(lineNumber);
+
         Type returnType = retType.SemantMe();
 
-        // 2. build parameter type list ONLY (do NOT declare names yet)
         TypeList paramsList = null;
         if (args != null)
             paramsList = args.buildTypeList();
 
-        // 3. enter function into global scope BEFORE body semantic analysis
         if (SymbolTable.getInstance().findInCurrentScope(name) != null)
             throw new SemanticException(lineNumber);
 
         TypeFunction funcType = new TypeFunction(returnType, name, paramsList);
         SymbolTable.getInstance().enter(name, funcType);
 
-        // 4. open function scope
         SymbolTable.getInstance().beginScope();
 
-        // 4.5. *** הוסף את זה! *** הכנס את טיפוס ההחזרה למעקב
         SymbolTable.getInstance().enter("__RET_TYPE__", returnType);
 
-        // 5. now declare parameters inside the scope
         if (args != null)
-            args.SemantMe();   // HERE we insert arg names
+            args.SemantMe();
 
-        // 6. check body
         if (body != null)
             body.SemantMe();
 
-        // 7. close scope
         SymbolTable.getInstance().endScope();
 
         return funcType;

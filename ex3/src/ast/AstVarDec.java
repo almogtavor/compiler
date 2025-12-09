@@ -32,6 +32,9 @@ public class AstVarDec extends AstDec {
     public Type SemantMe() {
         System.out.println("SemantMe: " + this.getClass().getSimpleName());
 
+        if (SymbolTable.isReservedKeyword(name))
+            throw new SemanticException(lineNumber);
+        
         Type t = type.SemantMe();
         if (t == TypeVoid.getInstance())
             throw new SemanticException(lineNumber);
