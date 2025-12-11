@@ -27,8 +27,6 @@ public class AstCFieldList extends AstNode {
     }
 
     public Type SemantMe() {
-        System.out.println("SemantMe: " + this.getClass().getSimpleName());
-
         if (head != null)
             head.SemantMe();
 

@@ -27,8 +27,6 @@ public class AstVarField extends AstVar {
 
     @Override
     public Type SemantMe() {
-System.out.println("SemantMe: " + this.getClass().getSimpleName());
-
         Type baseType = var.SemantMe();
 
         if (!(baseType instanceof TypeClass))

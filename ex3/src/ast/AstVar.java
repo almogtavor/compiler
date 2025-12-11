@@ -10,7 +10,6 @@ public abstract class AstVar extends AstNode {
 
     @Override
     public void printMe() {
-        // subclasses override
     }
 
     public abstract Type SemantMe();

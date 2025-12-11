@@ -24,8 +24,6 @@ public class AstStmtVarDec extends AstStmt {
 
     @Override
     public void SemantMe() {
-        System.out.println("SemantMe: " + this.getClass().getSimpleName());
-
         if (varDec != null)
             varDec.SemantMe();
 

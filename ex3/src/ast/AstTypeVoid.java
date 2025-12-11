@@ -15,8 +15,6 @@ public class AstTypeVoid extends AstType {
 
     @Override
     public Type SemantMe() {
-        System.out.println("SemantMe: " + this.getClass().getSimpleName());
-
         return TypeVoid.getInstance();
     }
 }

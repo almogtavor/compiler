@@ -24,35 +24,29 @@ public class AstStmtReturn extends AstStmt {
 
     @Override
     public void SemantMe() {
-        System.out.println("SemantMe: " + this.getClass().getSimpleName());
-
         Type retType = SymbolTable.getInstance().find("__RET_TYPE__");
         if (retType == null)
-            throw new SemanticException(lineNumber); // return מחוץ לפונקציה
+            throw new SemanticException(lineNumber);
 
         Type expType = null;
         if (exp != null)
             expType = exp.SemantMe();
 
-        // 1. בדיקה לפונקציה מחזירה void
         if (retType == TypeVoid.getInstance()) {
             if (exp != null)
-                throw new SemanticException(lineNumber); // אסור return עם ערך
+                throw new SemanticException(lineNumber);
             return;
         }
 
-        // 2. פונקציה מחזירה טיפוס לא-void
         if (exp == null)
-            return; // מותר path בלי return
+            return;
 
-        // 3. nil rules
         if (expType == TypeNil.getInstance()) {
             if (!(retType instanceof TypeClass) && !(retType instanceof TypeArray))
                 throw new SemanticException(lineNumber);
             return;
         }
 
-        // 4. בדיקת assignability רגילה
         if (!retType.isAssignableFrom(expType))
             throw new SemanticException(lineNumber);
     }

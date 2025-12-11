@@ -57,7 +57,6 @@ public class AstClassDec extends AstDec {
 
     @Override
     public Type SemantMe() {
-        System.out.println("SemantMe: " + this.getClass().getSimpleName());
 
         SymbolTable sym = SymbolTable.getInstance();
 

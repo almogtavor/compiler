@@ -31,8 +31,6 @@ public class AstStmtAssign extends AstStmt {
 
     @Override
     public void SemantMe() {
-System.out.println("SemantMe: " + this.getClass().getSimpleName());
-
         Type leftType = var.SemantMe();
         Type rightType = exp.SemantMe();
 

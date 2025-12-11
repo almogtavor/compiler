@@ -36,20 +36,16 @@ public class AstStmtIfElse extends AstStmt {
 
     @Override
     public void SemantMe() {
-System.out.println("SemantMe: " + this.getClass().getSimpleName());
-
         Type condType = cond.SemantMe();
 
         if (condType != TypeInt.getInstance())
             throw new SemanticException(lineNumber);
 
-        // then block
         SymbolTable.getInstance().beginScope();
         if (thenBody != null)
             thenBody.SemantMe();
         SymbolTable.getInstance().endScope();
 
-        // else block
         SymbolTable.getInstance().beginScope();
         if (elseBody != null)
             elseBody.SemantMe();

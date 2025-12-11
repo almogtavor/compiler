@@ -38,8 +38,6 @@ public class AstFuncDec extends AstDec {
 
     @Override
     public Type SemantMe() {
-        System.out.println("SemantMe: " + this.getClass().getSimpleName());
-
         if (SymbolTable.isReservedKeyword(name))
             throw new SemanticException(lineNumber);
 

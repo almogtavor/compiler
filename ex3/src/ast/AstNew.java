@@ -31,14 +31,11 @@ public class AstNew extends AstExp {
 
     @Override
     public Type SemantMe() {
-System.out.println("SemantMe: " + this.getClass().getSimpleName());
-
         Type t = type.SemantMe();
 
         if (t == TypeVoid.getInstance())
             throw new SemanticException(lineNumber);
 
-        // new ClassName
         if (size == null) {
             if (!(t instanceof TypeClass))
                 throw new SemanticException(lineNumber);
@@ -46,12 +43,10 @@ System.out.println("SemantMe: " + this.getClass().getSimpleName());
             return t;
         }
 
-        // new T[exp]
         Type sizeType = size.SemantMe();
         if (sizeType != TypeInt.getInstance())
             throw new SemanticException(lineNumber);
 
-        // בדיקת קבוע > 0
         if (size instanceof AstExpInt) {
             AstExpInt sizeInt = (AstExpInt) size;
             if (sizeInt.value <= 0)

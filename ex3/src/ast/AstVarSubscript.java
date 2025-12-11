@@ -31,7 +31,6 @@ public class AstVarSubscript extends AstVar {
 
     @Override
     public Type SemantMe() {
-        System.out.println("SemantMe: " + this.getClass().getSimpleName());
 
         Type t = var.SemantMe();
 
@@ -42,7 +41,6 @@ public class AstVarSubscript extends AstVar {
         if (tSub != TypeInt.getInstance())
             throw new SemanticException(lineNumber);
 
-        // בדיקת קבוע >= 0
         if (subscript instanceof AstExpInt) {
             AstExpInt subInt = (AstExpInt) subscript;
             if (subInt.value < 0)

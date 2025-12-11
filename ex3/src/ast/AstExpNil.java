@@ -16,8 +16,6 @@ public class AstExpNil extends AstExp {
 
     @Override
     public Type SemantMe() {
-        System.out.println("SemantMe: " + this.getClass().getSimpleName());
-
         return TypeNil.getInstance();
     }
 }

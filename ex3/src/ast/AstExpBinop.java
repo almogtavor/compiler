@@ -59,8 +59,6 @@ public class AstExpBinop extends AstExp {
 
     @Override
     public Type SemantMe() {
-System.out.println("SemantMe: " + this.getClass().getSimpleName());
-
         Type t1 = left.SemantMe();
         Type t2 = right.SemantMe();
 

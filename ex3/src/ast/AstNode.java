@@ -15,8 +15,6 @@ public abstract class AstNode {
     }
 
     public void printMe() {
-        System.out.println("SemantMe: " + this.getClass().getSimpleName());
-
         System.out.print("AST NODE UNKNOWN\n");
     }
 }

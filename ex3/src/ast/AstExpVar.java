@@ -26,7 +26,6 @@ public class AstExpVar extends AstExp {
 
     @Override
     public Type SemantMe() {
-        System.out.println("SemantMe: " + this.getClass().getSimpleName());
 
         Type t = var.SemantMe();
 

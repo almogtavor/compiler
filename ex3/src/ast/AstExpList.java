@@ -30,8 +30,6 @@ public class AstExpList extends AstNode {
     }
 
     public TypeList SemantMe() {
-System.out.println("SemantMe: " + this.getClass().getSimpleName());
-
         Type headType = null;
 
         if (head != null)

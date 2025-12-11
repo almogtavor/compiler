@@ -16,8 +16,6 @@ public class AstTypeInt extends AstType {
 
     @Override
     public Type SemantMe() {
-        System.out.println("SemantMe: " + this.getClass().getSimpleName());
-
         return TypeInt.getInstance();
     }
 }

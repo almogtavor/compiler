@@ -37,15 +37,11 @@ public class AstArgList extends AstNode {
     }
 
     public void enterParamsToScope() {
-        System.out.println("SemantMe: " + this.getClass().getSimpleName());
-
-        // 1. הכנס את הפרמטר הנוכחי
         if (SymbolTable.getInstance().findInCurrentScope(head.name) != null)
             throw new SemanticException(head.getLine());
 
         SymbolTable.getInstance().enter(head.name, head.SemantMe());
 
-        // 2. עבור לרשימה הבאה
         if (tail != null)
             tail.enterParamsToScope();
     }

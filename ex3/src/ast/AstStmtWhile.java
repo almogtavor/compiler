@@ -32,8 +32,6 @@ public class AstStmtWhile extends AstStmt {
 
     @Override
     public void SemantMe() {
-        System.out.println("SemantMe: " + this.getClass().getSimpleName());
-
         Type tCond = cond.SemantMe();
         if (tCond != TypeInt.getInstance())
             throw new SemanticException(lineNumber);

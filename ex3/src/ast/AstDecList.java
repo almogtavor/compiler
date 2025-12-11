@@ -30,7 +30,6 @@ public class AstDecList extends AstNode {
     }
 
     public void SemantMe() {
-        System.out.println("SemantMe: " + this.getClass().getSimpleName());
 
         if (head != null)
             head.SemantMe();

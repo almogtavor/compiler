@@ -20,8 +20,6 @@ public class AstVarSimple extends AstVar {
 
     @Override
     public Type SemantMe() {
-        System.out.println("SemantMe: " + this.getClass().getSimpleName());
-
         Type t = SymbolTable.getInstance().find(name);
 
         if (t == null)

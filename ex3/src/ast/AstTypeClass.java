@@ -20,15 +20,11 @@ public class AstTypeClass extends AstType {
 
     @Override
     public Type SemantMe() {
-        System.out.println("SemantMe: " + this.getClass().getSimpleName());
-
         Type t = SymbolTable.getInstance().find(name);
 
-        // must exist
         if (t == null)
             throw new SemanticException(lineNumber);
 
-        // cannot use void (except as function return type—not here)
         if (t == TypeVoid.getInstance())
             throw new SemanticException(lineNumber);
 

@@ -25,8 +25,7 @@ public class AstArrayTypedef extends AstDec {
 
     @Override
     public TypeArray SemantMe() {
-        System.out.println("SemantMe: " + this.getClass().getSimpleName());
-
+ 
         if (SymbolTable.isReservedKeyword(name))
             throw new SemanticException(lineNumber);
 

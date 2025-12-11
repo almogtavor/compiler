@@ -25,8 +25,6 @@ public class AstProgram extends AstNode {
     }
 
     public Type SemantMe() {
-System.out.println("SemantMe: " + this.getClass().getSimpleName());
-
         if (decList != null)
             decList.SemantMe();
 

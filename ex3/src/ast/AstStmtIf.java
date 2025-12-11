@@ -32,8 +32,6 @@ public class AstStmtIf extends AstStmt {
 
     @Override
     public void SemantMe() {
-System.out.println("SemantMe: " + this.getClass().getSimpleName());
-
         Type condType = cond.SemantMe();
 
         if (condType != TypeInt.getInstance())

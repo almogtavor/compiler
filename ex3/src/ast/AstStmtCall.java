@@ -25,8 +25,6 @@ public class AstStmtCall extends AstStmt {
 
     @Override
     public void SemantMe() {
-System.out.println("SemantMe: " + this.getClass().getSimpleName());
-
         if (call == null)
             throw new SemanticException(lineNumber);
 

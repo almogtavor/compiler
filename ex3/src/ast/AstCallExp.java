@@ -25,7 +25,6 @@ public class AstCallExp extends AstExp {
 
     @Override
     public Type SemantMe() {
-        System.out.println("SemantMe: " + this.getClass().getSimpleName());
 
         TypeFunction func;
         TypeList expectedParams;

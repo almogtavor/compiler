@@ -23,8 +23,6 @@ public class AstCField extends AstNode {
     }
 
     public Type SemantMe() {
-        System.out.println("SemantMe: " + this.getClass().getSimpleName());
-
         dec.SemantMe();
         return null;
     }
