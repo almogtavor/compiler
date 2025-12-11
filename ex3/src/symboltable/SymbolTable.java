@@ -104,25 +104,22 @@ public class SymbolTable
 	}
 
 	public Type find(String name) {
-		// קודם חפש ב-local scopes (method, block)
 		SymbolTableEntry cur = top;
 		
 		while (cur != null) {
 			if (cur.name.equals("SCOPE-BOUNDARY"))
-				break;  // הגענו לסוף ה-local scope
+				break;
 			if (cur.name.equals(name))
 				return cur.type;
 			cur = cur.prevtop;
 		}
 		
-		// אם אנחנו בתוך class, חפש ב-class hierarchy
 		if (currentClass != null) {
 			Type found = findInClassHierarchy(currentClass, name);
 			if (found != null)
 				return found;
 		}
 		
-		// אחרת, חפש בטבלה הרגילה (global scope)
 		SymbolTableEntry e;
 		for (e = table[hash(name)]; e != null; e = e.next) {
 			if (name.equals(e.name))
