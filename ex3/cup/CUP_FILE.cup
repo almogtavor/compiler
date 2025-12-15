@@ -20,6 +20,11 @@ parser code
 	{
 		throw new SyntaxException(lexer.getLine());
 	}
+
+      public static int line(int l)
+     {
+        return l + 1;
+     }
 :}
 
 /************************/
@@ -201,13 +206,13 @@ cFieldListTail ::= cField:f cFieldListTail:tl
                      {: RESULT = null; :}
                   ;
 
-classDec ::= CLASS ID:name extendsOpt:parent LBRACE cField:f cFieldListTail:tl RBRACE
-    {: RESULT = new AstClassDec(name, parent, new AstCFieldList(f,tl),lexer.getLine()); :}
+classDec ::= CLASS:c ID:name extendsOpt:parent LBRACE cField:f cFieldListTail:tl RBRACE
+    {: RESULT = new AstClassDec(name, parent, new AstCFieldList(f,tl), line(cleft)); :}
     ;
 
 
-arrayTypedef ::= ARRAY ID:id EQ type:t LBRACK RBRACK SEMICOLON
-    {: RESULT = new AstArrayTypedef(t, id, lexer.getLine()); :}
+arrayTypedef ::= ARRAY:a ID:id EQ type:t LBRACK RBRACK SEMICOLON
+    {: RESULT = new AstArrayTypedef(t, id, line(aleft)); :}
     ;
 
 
