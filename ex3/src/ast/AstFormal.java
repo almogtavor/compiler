@@ -34,6 +34,9 @@ public class AstFormal extends AstNode {
         if (t == TypeVoid.getInstance())
             throw new SemanticException(type.getLine());
 
+        if (SymbolTable.getInstance().findInCurrentScope(name) != null)
+            throw new SemanticException(type.getLine());
+
         SymbolTable.getInstance().enter(name, t);
         return t;
     }
