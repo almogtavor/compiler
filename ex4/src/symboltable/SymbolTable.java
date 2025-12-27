@@ -356,49 +356,20 @@ public class SymbolTable
 		return name.equals("int") || name.equals("string") || name.equals("void");
 	}
 
-	/**************************************/
-	/* IR Variable Name Methods           */
-	/**************************************/
+
 	public String enterVar(String name, Type t) {
 		String irName = name + "@" + irVarIdCounter++;
-		
-		/*************************************************/
-		/* [1] Compute the hash value for this new entry */
-		/*************************************************/
 		int hashValue = hash(name);
-
-		/******************************************************************************/
-		/* [2] Extract what will eventually be the next entry in the hashed position  */
-		/*     NOTE: this entry can very well be null, but the behaviour is identical */
-		/******************************************************************************/
 		SymbolTableEntry next = table[hashValue];
-	
-		/**************************************************************************/
-		/* [3] Prepare a new symbol table entry with name, type, next and prevtop */
-		/**************************************************************************/
 		SymbolTableEntry e = new SymbolTableEntry(name,t,hashValue,next,top, topIndex++);
 		e.irName = irName;
-
-		/**********************************************/
-		/* [4] Update the top of the symbol table ... */
-		/**********************************************/
 		top = e;
-		
-		/****************************************/
-		/* [5] Enter the new entry to the table */
-		/****************************************/
 		table[hashValue] = e;
-		
-		/**************************/
-		/* [6] Print Symbol Table */
-		/**************************/
 		printMe();
-		
 		return irName;
 	}
 
 	public String getIrName(String name) {
-		// Search from current scope backwards through the stack
 		SymbolTableEntry cur = top;
 		while (cur != null) {
 			if (cur.name.equals(name) && cur.irName != null) {
