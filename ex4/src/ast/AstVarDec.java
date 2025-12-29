@@ -60,13 +60,21 @@ public class AstVarDec extends AstDec {
         return t;
     }
 
-    @Override
-    public Temp IRme() {
+    public void irAllocate() {
         Ir.getInstance().AddIrCommand(new IrCommandAllocate(this.irName));
+    }
+
+    public void irInit() {
         if (init != null) {
             Temp src = init.IRme();
             Ir.getInstance().AddIrCommand(new IrCommandStore(this.irName, src));
         }
+    }
+
+    @Override
+    public Temp IRme() {
+        irAllocate();
+        irInit();
         return null;
     }
 }
