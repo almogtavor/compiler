@@ -22,6 +22,8 @@ public class IrCommandStore extends IrCommand
 		this.liveVarsOut = new HashSet<>(this.liveVarsIn);
 		if (this.liveVarsIn.contains(String.valueOf(this.src.getSerialNumber()))){
 			this.liveVarsOut.add(this.varName);
+		} else {
+			this.liveVarsOut.remove(this.varName);
 		}
 	}
 }
