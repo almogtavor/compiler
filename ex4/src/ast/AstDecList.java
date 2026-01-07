@@ -15,29 +15,7 @@ public class AstDecList extends AstNode {
 
     public void SemantMe() {
         for (AstDecList it = this; it != null; it = it.tail) {
-            if (it.head instanceof AstVarDec) {
-                AstVarDec v = (AstVarDec) it.head;
-                types.Type t = v.type.SemantMe();
-                v.irName = symboltable.SymbolTable.getInstance().enterVar(v.name, t);
-            }
-        }
-        
-        for (AstDecList it = this; it != null; it = it.tail) {
-            if (it.head instanceof AstVarDec) {
-                AstVarDec v = (AstVarDec) it.head;
-                if (v.init != null) {
-                    types.Type t = v.type.SemantMe();
-                    types.Type initType = v.init.SemantMe();
-                    if (!t.isAssignableFrom(initType))
-                        throw new Exceptions.SemanticException(v.lineNumber);
-                }
-            }
-        }
-        
-        for (AstDecList it = this; it != null; it = it.tail) {
-            if (!(it.head instanceof AstVarDec)) {
-                it.head.SemantMe();
-            }
+            it.head.SemantMe();
         }
     }
 
