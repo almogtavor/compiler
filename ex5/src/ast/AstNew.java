@@ -40,7 +40,7 @@ public class AstNew extends AstExp {
 
         Type sizeType = size.SemantMe();
         if (sizeType != TypeInt.getInstance()) throw new SemanticException(lineNumber);
-        if (size instanceof AstExpInt && ((AstExpInt) size).value <= 0)
+        if (size instanceof AstExpInt && ((AstExpInt) size).value < 0)
             throw new SemanticException(lineNumber);
         return new TypeArray(t.name, t);
     }
