@@ -24,3 +24,26 @@ hs_err_pid*
 replay_pid*
 ids.txt
 output/
+
+# Build/generated artifacts
+**/bin/
+**/output/
+**/COMPILER
+**/testsuite/generated/
+
+# JFlex/CUP generated source files
+**/src/Lexer.java
+**/src/Parser.java
+**/src/TokenNames.java
+
+# Self-check / helper dirs
+self-check-ex5-contents/
+self-check-ex5-shushan/
+expected_output/
+ex1/input/
+
+# External jars (can re-download)
+**/external_jars/
+
+# PDFs
+*.pdf
