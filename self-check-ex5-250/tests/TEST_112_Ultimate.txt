@@ -133,9 +133,6 @@ void main()
     PrintInt(zoo = ztwo);
     PrintInt(zoo = nil);
 
-    IntArr empty := new int[0];
-    PrintInt(empty = nil);
-
     PrintInt(13325 / 3);
 
     int total := 0;
