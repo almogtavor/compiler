@@ -20,18 +20,18 @@ void insert(TreeNode root, int v)
         {
             root.left := makeNode(v);
         }
-        if (root.left = nil = 0)
+        else
         {
             insert(root.left, v);
         }
     }
-    if (v < root.val = 0)
+    else
     {
         if (root.right = nil)
         {
             root.right := makeNode(v);
         }
-        if (root.right = nil = 0)
+        else
         {
             insert(root.right, v);
         }
