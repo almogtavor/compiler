@@ -4,10 +4,15 @@ import ir.*;
 import temp.*;
 import java.util.*;
 
+// Simplification-based graph-coloring register allocator (Chaitin's algorithm).
+// Allocates IR temporaries to 10 physical registers ($t0-$t9).
+// No spilling - if the graph can't be colored, compilation fails.
+// Runs independently per function.
 public class RegisterAllocator {
-    private static final int NUM_REGISTERS = 10;
+    private static final int NUM_REGISTERS = 10; // $t0-$t9
     private Map<Integer, Integer> tempToRegister = new HashMap<>();
 
+    // Per-function pipeline: split IR -> collect temps -> liveness -> interference graph -> color
     public Map<Integer, Integer> allocate(IrCommandList irList) {
         List<List<IrCommand>> functions = splitIntoFunctions(irList);
 
@@ -23,6 +28,7 @@ public class RegisterAllocator {
         return tempToRegister;
     }
 
+    // Split the flat IR list into per-function blocks (each starting with a function entry label)
     private List<List<IrCommand>> splitIntoFunctions(IrCommandList irList) {
         List<List<IrCommand>> functions = new ArrayList<>();
         List<IrCommand> current = new ArrayList<>();
@@ -48,6 +54,10 @@ public class RegisterAllocator {
         return temps;
     }
 
+    // Backward dataflow analysis to compute live-out sets for each IR command.
+    // Fixed-point iteration: in[i] = use[i] U (out[i] - def[i]),
+    //                        out[i] = U{ in[s] : s in successors(i) }
+    // Iterates until no sets change (capped at 1000 iterations as safety).
     private Map<Integer, Set<Integer>> livenessAnalysis(List<IrCommand> func) {
         int n = func.size();
         Map<String, List<Integer>> labelToIndices = new HashMap<>();
@@ -103,6 +113,8 @@ public class RegisterAllocator {
         return liveOutMap;
     }
 
+    // Control flow successors: jump -> target only, cond branch -> target + fall-through,
+    // return -> none (terminal), everything else -> fall-through to i+1
     private List<Integer> getSuccessors(int i, List<IrCommand> func, Map<String, List<Integer>> labelToIndices) {
         List<Integer> succs = new ArrayList<>();
         IrCommand cmd = func.get(i);
@@ -130,6 +142,8 @@ public class RegisterAllocator {
         return succs;
     }
 
+    // Build interference graph: two temps interfere if one is defined while the other is live-out.
+    // An edge between t1 and t2 means they can't share a register.
     private Map<Integer, Set<Integer>> buildInterferenceGraph(
             List<IrCommand> func, Map<Integer, Set<Integer>> liveOut, Set<Integer> allTemps) {
         Map<Integer, Set<Integer>> graph = new HashMap<>();
@@ -153,6 +167,11 @@ public class RegisterAllocator {
         return graph;
     }
 
+    // Chaitin's simplification-based graph coloring:
+    // Phase 1 (simplify): repeatedly remove a node with degree < K (=10) and push onto stack.
+    //   If no such node exists, allocation fails (no spilling implemented).
+    // Phase 2 (select): pop nodes from stack, assign the lowest available color
+    //   that doesn't conflict with already-colored neighbors.
     private Map<Integer, Integer> colorGraph(Map<Integer, Set<Integer>> graph, Set<Integer> allTemps) {
         Map<Integer, Set<Integer>> workGraph = new HashMap<>();
         for (Map.Entry<Integer, Set<Integer>> e : graph.entrySet()) {
@@ -163,6 +182,7 @@ public class RegisterAllocator {
         Deque<Integer> stack = new ArrayDeque<>();
         Set<Integer> removed = new HashSet<>();
 
+        // Phase 1: simplify - find and remove nodes with degree < K
         while (removed.size() < allTemps.size()) {
             boolean found = false;
             for (int t : allTemps) {
@@ -179,10 +199,11 @@ public class RegisterAllocator {
                 }
             }
             if (!found) {
-                throw new RegisterAllocationFailedException();
+                throw new RegisterAllocationFailedException(); // would need spilling
             }
         }
 
+        // Phase 2: select - pop and assign colors (register numbers 0-9 = $t0-$t9)
         Map<Integer, Integer> coloring = new HashMap<>();
         while (!stack.isEmpty()) {
             int t = stack.pop();

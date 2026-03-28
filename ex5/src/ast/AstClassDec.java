@@ -8,6 +8,9 @@ import temp.*;
 import ir.*;
 import codegen.*;
 
+// AST node for class declarations: `class Foo extends Bar { ... }`
+// Handles semantic analysis (inheritance rules, scope), layout registration,
+// and IR generation for class methods.
 public class AstClassDec extends AstDec {
     public String name;
     public String parentName;
@@ -49,6 +52,12 @@ public class AstClassDec extends AstDec {
         if (fields != null) AstGraphviz.getInstance().logEdge(serialNumber, fields.serialNumber);
     }
 
+    // Semantic analysis for a class declaration:
+    // 1. Validate name and resolve parent class
+    // 2. Check no duplicate member names, validate inheritance rules
+    // 3. Register class type in symbol table, open a scope for members
+    // 4. Process all fields and methods (type-check)
+    // 5. Build memory layout (ClassLayoutManager) and record field defaults
     @Override
     public Type SemantMe() {
         SymbolTable sym = SymbolTable.getInstance();
@@ -64,6 +73,7 @@ public class AstClassDec extends AstDec {
         checkNoDuplicateNamesInClass();
         if (parent != null) checkInheritanceRules(parent);
 
+        // Register class type early so recursive references work
         TypeClass thisClass = new TypeClass(name, parent, null);
         sym.enter(name, thisClass);
         sym.beginScope();
@@ -154,6 +164,8 @@ public class AstClassDec extends AstDec {
         }
     }
 
+    // Inheritance rules: fields cannot shadow parent fields,
+    // methods can override parent methods only with the exact same signature.
     private void checkInheritanceRules(TypeClass parent) {
         if (fields == null) return;
         for (AstCFieldList it = fields; it != null; it = it.tail) {
@@ -208,6 +220,9 @@ public class AstClassDec extends AstDec {
         return null;
     }
 
+    // Generate IR for each method in the class.
+    // Each method gets an implicit `this` parameter as its first argument.
+    // A fallback return (void or return 0) is appended in case control falls through.
     @Override
     public Temp IRme() {
         if (fields == null) return null;
@@ -230,6 +245,7 @@ public class AstClassDec extends AstDec {
                 lbl.isFunctionEntry = true;
                 Ir.getInstance().AddIrCommand(lbl);
 
+                // Implicit `this` parameter - first arg, before user-declared params
                 String thisIrName = "this@" + name + "_" + fd.name;
                 Ir.getInstance().AddIrCommand(new IrCommandAllocate(thisIrName));
                 info.addParam(thisIrName);
@@ -238,6 +254,7 @@ public class AstClassDec extends AstDec {
                 if (fd.args != null) fd.args.IRme();
                 if (fd.body != null) fd.body.IRme();
 
+                // Fallback return in case no explicit return statement was reached
                 Type rt = fd.retType.SemantMe();
                 if (rt == TypeVoid.getInstance()) {
                     Ir.getInstance().AddIrCommand(new IrCommandReturnVoid());

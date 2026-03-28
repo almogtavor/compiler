@@ -8,15 +8,14 @@ import zipfile
 import socket
 
 SCRIPT_DIR = pathlib.Path(__file__).parent
-EXERCISE_DIR = SCRIPT_DIR / 'ex2'
+EXERCISE_DIR = SCRIPT_DIR / 'ex5'
 
 INPUT_DIR = SCRIPT_DIR / 'tests'
 EXPECTED_OUTPUT_DIR = SCRIPT_DIR / 'expected_output'
 SELF_CHECK_OUTPUT_DIR = SCRIPT_DIR / 'self_check_output'
 MAKEFILE_PATH = EXERCISE_DIR / 'Makefile'
 IDS_FILE_PATH = SCRIPT_DIR / 'ids.txt' 
-EXECUTABLE_NAME = "PARSER"
-RESULT_FILE = SCRIPT_DIR / 'self-check-result.csv' 
+EXECUTABLE_NAME = "COMPILER"
 
 HOST_NAME = "nova"
 
@@ -111,9 +110,30 @@ def run_test(test_path, output_dir, executable_file):
     if not expected_output_path.exists():
         print(f"FAILED (Expected output file missing)")
         raise RuntimeError(f"Expected output file not found")
+       
         
     with open(str(output_path), 'r') as f1, open(str(expected_output_path), 'r') as f2:
         content1 = f1.read()
+        
+        if content1 != "Register Allocation Failed":
+            try:
+                spim_result = subprocess.run(
+                    ["spim", "-file", str(output_path)],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    timeout=10
+                )
+                if spim_result.returncode != 0:
+                    print(f"FAILED (SPIM runtime error)")
+                    raise RuntimeError("SPIM runtime error.")
+
+                content1 = spim_result.stdout
+            
+            except subprocess.TimeoutExpired:
+                print("FAILED (SPIM Timeout)")
+                raise RuntimeError("SPIM Timed out.")        
+        
         content2 = f2.read()
         if content1 == content2:
             print("OK")

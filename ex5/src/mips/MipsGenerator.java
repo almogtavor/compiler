@@ -7,12 +7,15 @@ import codegen.*;
 import java.io.*;
 import java.util.*;
 
+// Translates IR commands into MIPS assembly.
+// Uses $t0-$t9 for register-allocated temporaries, $s0-$s7 as scratch
+// registers for complex operations (array access, virtual calls, etc.).
 public class MipsGenerator {
-    private static final int CALLER_TEMP_REG_COUNT = 10;
+    private static final int CALLER_TEMP_REG_COUNT = 10; // $t0-$t9
     private PrintWriter out;
     private RegisterAllocator regAlloc;
-    private Map<String, Integer> localVarOffsets = new HashMap<>();
-    private int currentFrameSize = 0;
+    private Map<String, Integer> localVarOffsets = new HashMap<>(); // var name -> offset from $fp
+    private int currentFrameSize = 0; // bytes of local storage below $fp
     private String currentFunc = null;
 
     public MipsGenerator(PrintWriter out, RegisterAllocator regAlloc) {
@@ -25,10 +28,12 @@ public class MipsGenerator {
         generateTextSection(irList);
     }
 
+    // Emit .data section: runtime error strings, string literals, globals, and vtables
     private void generateDataSection() {
         out.println(".data");
         CodeGenInfo info = CodeGenInfo.getInstance();
 
+        // Runtime error messages
         out.println("str_access_violation: .asciiz \"Access Violation\"");
         out.println("str_illegal_div_zero: .asciiz \"Illegal Division By Zero\"");
         out.println("str_invalid_ptr: .asciiz \"Invalid Pointer Dereference\"");
@@ -43,10 +48,13 @@ public class MipsGenerator {
             out.println(e.getKey() + ": .asciiz \"" + escaped + "\"");
         }
 
+        // Global variables, each initialized to 0
         for (String gv : info.getGlobalVars()) {
             out.println(sanitizeLabel(gv) + ": .word 0");
         }
 
+        // Virtual method tables - each class gets a vtable_<ClassName> label
+        // containing function pointers in vtable order
         ClassLayoutManager clm = ClassLayoutManager.getInstance();
         for (Map.Entry<String, ClassLayoutManager.ClassInfo> e : clm.getAllClassInfos().entrySet()) {
             ClassLayoutManager.ClassInfo ci = e.getValue();
@@ -65,11 +73,15 @@ public class MipsGenerator {
         out.println();
     }
 
+    // Emit .text section: MIPS entry point calls global init then func_main, then exit.
+    // IR commands before the first function label are global init code;
+    // everything from the first function label onward is emitted as function bodies.
     private void generateTextSection(IrCommandList irList) {
         out.println(".text");
         out.println(".globl main");
         out.println();
 
+        // MIPS entry: init globals, call L's main(), then exit syscall
         out.println("main:");
         generateGlobalInit(irList);
         out.println("  jal func_main");
@@ -77,6 +89,7 @@ public class MipsGenerator {
         out.println("  syscall");
         out.println();
 
+        // Emit all function bodies (skip global init IR that precedes the first function label)
         boolean inGlobalInit = true;
         for (IrCommandList it = irList; it != null; it = it.tail) {
             IrCommand cmd = it.command;
@@ -98,6 +111,16 @@ public class MipsGenerator {
         }
     }
 
+    // Build the stack frame layout for a function.
+    //
+    // Stack frame (growing downward):
+    //   [arg N-1]    offset = 8 + (N-1)*4  from $fp  (pushed by caller)
+    //   [arg 0]      offset = 8            from $fp  (pushed by caller)
+    //   [saved $ra]  offset = 4            from $fp
+    //   [saved $fp]  offset = 0            <- $fp points here
+    //   [local 0]    offset = -4           from $fp
+    //   [local 1]    offset = -8           from $fp
+    //   ...                                <- $sp points to bottom
     private void setupFunctionFrame(String funcLabel) {
         currentFunc = funcLabel;
         localVarOffsets.clear();
@@ -105,9 +128,11 @@ public class MipsGenerator {
         List<String> params = info.getParams(funcLabel);
         List<String> locals = info.getLocals(funcLabel);
 
+        // Params live above $fp (pushed by caller before the call)
         for (int i = 0; i < params.size(); i++) {
             localVarOffsets.put(params.get(i), 8 + i * 4);
         }
+        // Locals live below $fp
         int offset = -4;
         for (String local : locals) {
             localVarOffsets.put(local, offset);
@@ -150,14 +175,18 @@ public class MipsGenerator {
         else if (cmd instanceof IrCommandCheckDivZero) generateCheckDivZero((IrCommandCheckDivZero) cmd);
     }
 
+    // Function entry labels emit the prologue (save $ra/$fp, set up frame);
+    // regular labels just emit the label.
     private void generateLabel(IrCommandLabel cmd) {
         if (cmd.isFunctionEntry) {
             setupFunctionFrame(cmd.labelName);
             out.println(cmd.labelName + ":");
+            // Prologue: save return address and caller's frame pointer
             out.println("  subu $sp, $sp, 8");
             out.println("  sw $ra, 4($sp)");
             out.println("  sw $fp, 0($sp)");
             out.println("  move $fp, $sp");
+            // Allocate space for local variables
             if (currentFrameSize > 0) {
                 out.println("  subu $sp, $sp, " + currentFrameSize);
             }
@@ -174,6 +203,7 @@ public class MipsGenerator {
         out.println("  la " + reg(cmd.dst) + ", " + cmd.label);
     }
 
+    // Load a variable into a register: globals via .data label, locals via $fp offset
     private void generateLoad(IrCommandLoad cmd) {
         String r = reg(cmd.dst);
         if (CodeGenInfo.getInstance().isGlobalVar(cmd.varName)) {
@@ -184,11 +214,12 @@ public class MipsGenerator {
             if (offset != null) {
                 out.println("  lw " + r + ", " + offset + "($fp)");
             } else {
-                out.println("  li " + r + ", 0");
+                out.println("  li " + r + ", 0"); // unknown var defaults to 0
             }
         }
     }
 
+    // Store a register into a variable: globals via .data label, locals via $fp offset
     private void generateStore(IrCommandStore cmd) {
         String r = reg(cmd.src);
         if (CodeGenInfo.getInstance().isGlobalVar(cmd.varName)) {
@@ -220,6 +251,7 @@ public class MipsGenerator {
         saturate(reg(cmd.dst));
     }
 
+    // Integer floor division: div puts quotient in LO register, mflo reads it
     private void generateDiv(IrCommandBinopDivIntegers cmd) {
         out.println("  div " + reg(cmd.t1) + ", " + reg(cmd.t2));
         out.println("  mflo " + reg(cmd.dst));
@@ -279,6 +311,7 @@ public class MipsGenerator {
         out.println("  move " + reg(cmd.dst) + ", $v0");
     }
 
+    // Object layout: [vtable_ptr | field0 | field1 | ...], so field at offset N is at byte N*4
     private void generateFieldGet(IrCommandFieldGet cmd) {
         int byteOffset = cmd.offset * 4;
         out.println("  lw " + reg(cmd.dst) + ", " + byteOffset + "(" + reg(cmd.obj) + ")");
@@ -289,18 +322,25 @@ public class MipsGenerator {
         out.println("  sw " + reg(cmd.src) + ", " + byteOffset + "(" + reg(cmd.obj) + ")");
     }
 
+    // Array layout: [length | elem0 | elem1 | ...], so element at index i is at byte 4 + i*4
+    // sll by 2 = multiply index by 4 (word size)
     private void generateArrayGet(IrCommandArrayGet cmd) {
         out.println("  sll $s1, " + reg(cmd.idx) + ", 2");
         out.println("  addu $s1, $s1, " + reg(cmd.arr));
-        out.println("  lw " + reg(cmd.dst) + ", 4($s1)");
+        out.println("  lw " + reg(cmd.dst) + ", 4($s1)"); // +4 to skip length word
     }
 
     private void generateArraySet(IrCommandArraySet cmd) {
         out.println("  sll $s1, " + reg(cmd.idx) + ", 2");
         out.println("  addu $s1, $s1, " + reg(cmd.arr));
-        out.println("  sw " + reg(cmd.src) + ", 4($s1)");
+        out.println("  sw " + reg(cmd.src) + ", 4($s1)"); // +4 to skip length word
     }
 
+    // Calling convention for global (non-virtual) function calls:
+    // 1. Caller saves all $t0-$t9 on the stack
+    // 2. Push args right-to-left so arg0 ends up at lowest address
+    // 3. jal to function label
+    // 4. Pop args, restore $t regs, read return value from $v0
     private void generateCallFunc(IrCommandCallFunc cmd) {
         int numArgs = cmd.args.size();
         saveCallerTemps();
@@ -314,9 +354,11 @@ public class MipsGenerator {
         if (cmd.dst != null) out.println("  move " + reg(cmd.dst) + ", $v0");
     }
 
+    // Virtual (method) call: same as above but `this` is prepended as first arg,
+    // and the target address is looked up from the object's vtable at runtime.
     private void generateVirtualCall(IrCommandVirtualCall cmd) {
         List<Temp> allArgs = new ArrayList<>();
-        allArgs.add(cmd.obj);
+        allArgs.add(cmd.obj); // `this` pointer is first argument
         allArgs.addAll(cmd.args);
         int numArgs = allArgs.size();
 
@@ -326,6 +368,7 @@ public class MipsGenerator {
             out.println("  sw " + reg(allArgs.get(i)) + ", 0($sp)");
         }
 
+        // Load vtable pointer from word 0 of object, then index into it
         out.println("  lw $s0, 0(" + reg(cmd.obj) + ")");
         int byteOffset = cmd.vtableOffset * 4;
         out.println("  lw $s0, " + byteOffset + "($s0)");
@@ -336,6 +379,7 @@ public class MipsGenerator {
         if (cmd.dst != null) out.println("  move " + reg(cmd.dst) + ", $v0");
     }
 
+    // Caller-save: push all $t0-$t9 before a call, restore after
     private void saveCallerTemps() {
         for (int i = 0; i < CALLER_TEMP_REG_COUNT; i++) {
             out.println("  subu $sp, $sp, 4");
@@ -350,12 +394,13 @@ public class MipsGenerator {
         }
     }
 
+    // Epilogue: restore $sp/$fp/$ra and jump back to caller
     private void generateReturn(IrCommandReturn cmd) {
         if (cmd.val != null) out.println("  move $v0, " + reg(cmd.val));
-        out.println("  move $sp, $fp");
-        out.println("  lw $fp, 0($sp)");
-        out.println("  lw $ra, 4($sp)");
-        out.println("  addu $sp, $sp, 8");
+        out.println("  move $sp, $fp");      // discard locals
+        out.println("  lw $fp, 0($sp)");     // restore caller's frame pointer
+        out.println("  lw $ra, 4($sp)");     // restore return address
+        out.println("  addu $sp, $sp, 8");   // pop saved $fp and $ra
         out.println("  jr $ra");
     }
 
@@ -367,6 +412,8 @@ public class MipsGenerator {
         out.println("  jr $ra");
     }
 
+    // String concatenation: compute strlen(s1) + strlen(s2), malloc that +1,
+    // copy s1 bytes, copy s2 bytes, null-terminate. Uses $s2-$s6 as scratch.
     private void generateStringConcat(IrCommandStringConcat cmd) {
         out.println("  move $s2, " + reg(cmd.s1));
         out.println("  move $s3, " + reg(cmd.s2));
@@ -421,6 +468,7 @@ public class MipsGenerator {
         out.println("  sb $zero, 0($s5)");
     }
 
+    // String equality: byte-by-byte comparison loop, returns 1 if equal, 0 otherwise
     private void generateStringEq(IrCommandStringEq cmd) {
         out.println("  move $s2, " + reg(cmd.s1));
         out.println("  move $s3, " + reg(cmd.s2));
@@ -444,6 +492,7 @@ public class MipsGenerator {
         out.println(skip + ":");
     }
 
+    // Runtime check: if pointer is null (0), print error and exit
     private void generateCheckNull(IrCommandCheckNullPtr cmd) {
         String ok = IrCommand.getFreshLabel("null_ok");
         out.println("  bne " + reg(cmd.ptr) + ", $zero, " + ok);
@@ -455,6 +504,7 @@ public class MipsGenerator {
         out.println(ok + ":");
     }
 
+    // Runtime check: if index < 0 or index >= array length (word 0), print error and exit
     private void generateCheckBounds(IrCommandCheckBounds cmd) {
         String ok = IrCommand.getFreshLabel("bounds_ok");
         String fail = IrCommand.getFreshLabel("bounds_fail");
@@ -482,6 +532,7 @@ public class MipsGenerator {
         out.println(ok + ":");
     }
 
+    // L uses saturation arithmetic: clamp result to [-32768, 32767] after every int operation
     private void saturate(String r) {
         String ok1 = IrCommand.getFreshLabel("sat_ok1");
         String ok2 = IrCommand.getFreshLabel("sat_ok2");

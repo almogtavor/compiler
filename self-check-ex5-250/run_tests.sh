@@ -11,11 +11,13 @@ All Rights Reserved.
 See the file README for a full copyright notice.
 Loaded: /usr/lib/spim/exceptions.s'
 PASS=0; FAIL=0; FAILED=""
+TMP_DIR=$(mktemp -d)
+trap "rm -rf $TMP_DIR" EXIT
 for test_file in $(ls "$TESTS_DIR"/TEST_*.txt | sort -t_ -k2 -n); do
     name=$(basename "$test_file" .txt)
     expected_file="$EXPECTED_DIR/${name}_Expected_Output.txt"
     [ ! -f "$expected_file" ] && { FAIL=$((FAIL+1)); FAILED="$FAILED\n  $name: Missing expected"; continue; }
-    asm_file="/tmp/${name}.s"
+    asm_file="$TMP_DIR/${name}.s"
     java -jar "$COMPILER" "$test_file" "$asm_file" 2>/dev/null
     [ ! -f "$asm_file" ] && { FAIL=$((FAIL+1)); FAILED="$FAILED\n  $name: No compiler output"; continue; }
     compiler_output=$(cat "$asm_file")

@@ -35,6 +35,7 @@ output/
 **/src/Lexer.java
 **/src/Parser.java
 **/src/TokenNames.java
+**/src/sym.java
 
 # Self-check / helper dirs
 self-check-ex5-contents/
@@ -47,3 +48,10 @@ ex1/input/
 
 # PDFs
 *.pdf
+self-check-ex5-maya/
+tests/
+
+# Whitelist self-check-ex5-250/ and its subdirs
+!self-check-ex5-250/
+!self-check-ex5-250/**
+tests/

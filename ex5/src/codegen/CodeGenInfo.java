@@ -2,17 +2,20 @@ package codegen;
 
 import java.util.*;
 
+// Singleton that tracks code-generation state shared across AST nodes during IR generation.
+// Keeps track of which function/class we're currently inside, and accumulates
+// metadata needed by MipsGenerator: global vars, function params/locals, string literals.
 public class CodeGenInfo {
     private static CodeGenInfo instance = null;
 
-    private Set<String> globalVars = new LinkedHashSet<>();
-    private Map<String, List<String>> functionParams = new LinkedHashMap<>();
-    private Map<String, List<String>> functionLocals = new LinkedHashMap<>();
-    private Map<String, String> stringLiterals = new LinkedHashMap<>();
+    private Set<String> globalVars = new LinkedHashSet<>();                // IR names of global variables
+    private Map<String, List<String>> functionParams = new LinkedHashMap<>(); // funcLabel -> ordered param IR names
+    private Map<String, List<String>> functionLocals = new LinkedHashMap<>(); // funcLabel -> ordered local IR names
+    private Map<String, String> stringLiterals = new LinkedHashMap<>();    // .data label -> string value
     private int stringCounter = 0;
-    private String currentFunction = null;
-    private String currentClassName = null;
-    private String currentThisParam = null;
+    private String currentFunction = null;   // label of function currently being IR-generated
+    private String currentClassName = null;  // class currently being IR-generated (null if top-level)
+    private String currentThisParam = null;  // IR name of the implicit `this` param (null if not in a method)
 
     protected CodeGenInfo() {}
 
@@ -46,6 +49,7 @@ public class CodeGenInfo {
             functionParams.get(currentFunction).add(irName);
     }
 
+    // If inside a function, register as local; otherwise treat as global variable
     public void addLocal(String irName) {
         if (currentFunction != null)
             functionLocals.get(currentFunction).add(irName);
@@ -61,6 +65,8 @@ public class CodeGenInfo {
         return functionLocals.getOrDefault(funcLabel, new ArrayList<>());
     }
 
+    // Deduplicate string constants: if the same value already exists, reuse its label.
+    // Otherwise allocate a new str_const_N label for the .data section.
     public String addStringLiteral(String value) {
         for (Map.Entry<String, String> e : stringLiterals.entrySet()) {
             if (e.getValue().equals(value)) return e.getKey();

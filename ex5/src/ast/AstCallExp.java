@@ -8,12 +8,17 @@ import ir.*;
 import codegen.*;
 import java.util.*;
 
+// AST node for function/method call expressions: `foo(x)` or `obj.foo(x)`.
+// Handles three call forms:
+//   1. Global function call: `foo(x)` where foo is a top-level function
+//   2. Implicit this call: `foo(x)` inside a class, where foo is a method of the current class
+//   3. Explicit receiver call: `obj.foo(x)` - virtual method dispatch
 public class AstCallExp extends AstExp {
-    public AstVar object;
-    public String name;
+    public AstVar object;          // receiver object (null for global/implicit this calls)
+    public String name;            // function/method name
     public AstExpList args;
-    private boolean isMethodCall = false;
-    private String resolvedClassName = null;
+    private boolean isMethodCall = false;    // true if resolved as a class method (cases 2 & 3)
+    private String resolvedClassName = null; // class to look up vtable from
 
     public AstCallExp(AstVar object, String name, AstExpList args, int lineNumber) {
         super(lineNumber);
@@ -29,6 +34,11 @@ public class AstCallExp extends AstExp {
         if (args != null) AstGraphviz.getInstance().logEdge(serialNumber, args.serialNumber);
     }
 
+    // Resolve the call target and type-check arguments.
+    // No receiver (object==null): look up name in scope. If inside a class and
+    //   name isn't in the local scope, search the class hierarchy - if found,
+    //   mark as implicit `this` method call.
+    // With receiver: resolve receiver type, search its class hierarchy for method.
     @Override
     public Type SemantMe() {
         TypeFunction func;
@@ -36,16 +46,19 @@ public class AstCallExp extends AstExp {
         TypeList givenParams = (args != null ? args.SemantMe() : null);
 
         if (object == null) {
+            // No explicit receiver - could be global function or implicit this.method()
             Type t = SymbolTable.getInstance().find(name);
             if (!(t instanceof TypeFunction))
                 throw new SemanticException(lineNumber);
             func = (TypeFunction) t;
             expectedParams = func.params;
 
+            // Check if this is actually a method of the enclosing class (implicit this)
             TypeClass currentClass = SymbolTable.getInstance().getCurrentClass();
             if (currentClass != null) {
                 Type directLookup = SymbolTable.getInstance().findInCurrentScope(name);
                 if (directLookup == null) {
+                    // Not a local var/param - walk the class hierarchy
                     TypeClass curr = currentClass;
                     while (curr != null) {
                         Type found = (curr.dataMembers != null ? curr.dataMembers.find(name) : null);
@@ -95,6 +108,11 @@ public class AstCallExp extends AstExp {
         return func.returnType;
     }
 
+    // IR generation for calls:
+    // - PrintInt/PrintString: special-cased as direct MIPS syscalls
+    // - Explicit receiver (obj.method): null-check obj, then virtual call via vtable
+    // - Implicit this (isMethodCall, no receiver): load this param, then virtual call
+    // - Global function: direct call via label
     @Override
     public Temp IRme() {
         if (name.equals("PrintInt")) {

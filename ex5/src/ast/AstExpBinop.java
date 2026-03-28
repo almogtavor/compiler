@@ -6,6 +6,9 @@ import symboltable.SymbolTable;
 import temp.*;
 import ir.*;
 
+// AST node for binary operations: arithmetic (+,-,*,/), comparison (<,>,=).
+// Type rules vary by operator - see SemantMe().
+// All integer results use saturation arithmetic (clamped in MIPS codegen).
 public class AstExpBinop extends AstExp {
 
     public static final int OP_PLUS   = 1;
@@ -51,6 +54,13 @@ public class AstExpBinop extends AstExp {
         if (right != null) AstGraphviz.getInstance().logEdge(serialNumber, right.serialNumber);
     }
 
+    // Type checking rules per operator:
+    //   +     : int+int -> int, string+string -> string (concatenation)
+    //   -,*   : int only
+    //   /     : int only, static check for literal 0
+    //   <, >  : int only, result is int (0 or 1)
+    //   =     : int=int, string=string (content eq), class/array (address eq),
+    //           nil can be compared with any class or array type
     @Override
     public Type SemantMe() {
         leftType = left.SemantMe();
@@ -94,9 +104,13 @@ public class AstExpBinop extends AstExp {
         }
     }
 
+    // IR generation: left is evaluated first (L spec), then right, then the operation.
+    // String + dispatches to concat; string = dispatches to content comparison.
+    // Division emits a div-zero runtime check before the actual div.
+    // Integer equality for classes/arrays compares addresses (same IR as int eq).
     @Override
     public Temp IRme() {
-        Temp t1 = left.IRme();
+        Temp t1 = left.IRme();  // left evaluated first per spec
         Temp t2 = right.IRme();
         Temp dst = TempFactory.getInstance().getFreshTemp();
 
