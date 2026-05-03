@@ -55,3 +55,4 @@ tests/
 !self-check-ex5-250/
 !self-check-ex5-250/**
 tests/
+self-check-ex5/

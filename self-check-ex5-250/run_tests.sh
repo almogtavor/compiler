@@ -22,14 +22,17 @@ for test_file in $(ls "$TESTS_DIR"/TEST_*.txt | sort -t_ -k2 -n); do
     [ ! -f "$asm_file" ] && { FAIL=$((FAIL+1)); FAILED="$FAILED\n  $name: No compiler output"; continue; }
     compiler_output=$(cat "$asm_file")
     expected_content=$(cat "$expected_file")
+    expected_raw=$(cat "$expected_file" | od -An -tx1 | tr -d ' \n')
     if [ "$compiler_output" = "ERROR" ] || echo "$compiler_output" | grep -qE "^ERROR\([0-9]+\)$" || [ "$compiler_output" = "Register Allocation Failed" ]; then
-        [ "$compiler_output" = "$expected_content" ] && PASS=$((PASS+1)) || { FAIL=$((FAIL+1)); FAILED="$FAILED\n  $name: Got '$compiler_output' expected '$expected_content'"; }
+        actual_raw=$(cat "$asm_file" | od -An -tx1 | tr -d ' \n')
+        [ "$actual_raw" = "$expected_raw" ] && PASS=$((PASS+1)) || { FAIL=$((FAIL+1)); FAILED="$FAILED\n  $name: Got '$compiler_output' expected '$expected_content'"; }
         rm -f "$asm_file"; continue
     fi
     spim_output=$(echo "" | spim -file "$asm_file" 2>&1)
     program_output=$(echo "$spim_output" | sed -n '/^Loaded:/,$p' | tail -n +2)
     actual_output=$(printf '%s\n%s' "$SPIM_BANNER" "$program_output")
-    [ "$actual_output" = "$expected_content" ] && PASS=$((PASS+1)) || { FAIL=$((FAIL+1)); FAILED="$FAILED\n  $name: Output mismatch"; }
+    actual_raw=$(printf '%s' "$actual_output" | od -An -tx1 | tr -d ' \n')
+    [ "$actual_raw" = "$expected_raw" ] && PASS=$((PASS+1)) || { FAIL=$((FAIL+1)); FAILED="$FAILED\n  $name: Output mismatch"; }
     rm -f "$asm_file"
 done
 echo "=== Results ==="; echo "Passed: $PASS"; echo "Failed: $FAIL"; echo "Total: $((PASS+FAIL))"
